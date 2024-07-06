@@ -4,3 +4,4 @@ exemplos/.ivy2
 exemplos/.jupyter
 exemplos/.local
 exemplos/.npm
+.venv
