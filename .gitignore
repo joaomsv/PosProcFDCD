@@ -5,3 +5,4 @@ exemplos/.jupyter
 exemplos/.local
 exemplos/.npm
 .venv
+bd/__pycache__
