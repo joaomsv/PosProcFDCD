@@ -13,5 +13,13 @@ def rota_padrao():
 def consulta_rec(usuario: int):
     return {"usuario": usuario, "resultado_recs": mongo.consulta_recomendacoes(usuario, conexao)}
 
+# multi user, only movie IDs
+@app.get("/rec/v3/{users}")
+def consulta_rec_mov(users: str):
+    rec = []
+    for user in users.split(','):
+        rec.append({'usuario': int(user), 'rec_filmes': mongo.consulta_rec_movies(int(user), conexao)})
+    return {'Resultado': rec}
+
 if __name__ == "__main__":
     uvicorn.run(app, host='localhost', port=8000)
