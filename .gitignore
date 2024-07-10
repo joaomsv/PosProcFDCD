@@ -6,3 +6,4 @@ exemplos/.local
 exemplos/.npm
 .venv
 bd/__pycache__
+data
