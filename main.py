@@ -18,7 +18,7 @@ def consulta_rec(usuario: int):
 def consulta_rec_mov(users: str):
     rec = []
     for user in users.split(','):
-        rec.append({'usuario': int(user), 'rec_filmes': mongo.consulta_rec_movies(int(user), conexao)})
+        rec.append({'usuario': int(user), 'recomedacoes': mongo.consulta_rec_movies(int(user), conexao)})
     return {'Resultado': rec}
 
 if __name__ == "__main__":

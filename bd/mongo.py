@@ -1,10 +1,11 @@
 from pymongo import MongoClient
+from pymongo.collection import Collection
 
 def inicia_conexao():
 
     client = MongoClient('localhost', 27017)
     db = client['puc']
-    col = db.recomendacoes
+    col = db['recomendacoes']
     return col
 
 def consulta_recomendacoes(usuario, conexao):
@@ -16,14 +17,14 @@ def consulta_recomendacoes(usuario, conexao):
 
     return {'Recomendações': list_rec}
 
-def consulta_rec_movies(usuario, conexao):
+def consulta_rec_movies(usuario, conexao: Collection):
 
-    recomendacoes = list(conexao.find({"userId": usuario}))
-    list_rec = []
+    recomendacoes = conexao.find({"userId": usuario})
+    list_rec = {}
     for rec in recomendacoes:
-        list_rec.append(rec['movieId'])
+        list_rec.update({'movieID': rec['movieId']})
 
-    return {'Recomendações': list_rec}
+    return list_rec
 
 conn = inicia_conexao()
 for x in conn.find({'userId': 28}):
