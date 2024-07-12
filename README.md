@@ -78,4 +78,26 @@ pyspark:
 
 Podemos ver que a configuração do PySpark é bem similar à do MongoDB. A maior diferença está no mapeamento das portas `11000:8888` e no mapeamento da pasta `./exemplos:/home/jovyan/` para garantir o compartilhamento dos arquivos de código sem a necessidade de importação.
 
+#### Iniciando os Containers
+
+Para subir os containers, utilize o comando `docker-compose up -d` no terminal.
+
+![Docker Compose Up](media/dockerComposeUp.png 'Docker Compose Up')
+![Containers](media/containers.png 'Containers')
+
+Após a inicialização dos containers, podemos começar o trabalho. Para acessar o PySpark, precisamos abrir o link gerado automaticamente no log.
+
+![Link PySpark](media/linkPySpark.png 'Link PySpark')
+
+Acessando esse link, percebemos que ocorre um erro. Isso acontece porque precisamos alterar a parte da porta de `127.0.0.1:8888` para a porta que mapeamos, que é `127.0.0.1:11000`. Após fazer essa modificação, o PySpark abrirá sem problemas.
+
+![PySpark](media/pyspark.png 'PySpark')
+
+No lado esquerdo, podemos ver 2 arquivos:
+
+- **ExemploALS.ipynb:** Contém o código para nosso sistema de recomendações.
+![Codigo](media/codigo.png 'Codigo')
+- **sample_movielens_ratings.txt:** É a nossa base de dados.
+![Base de Dados](media/baseDeDados.png 'Base de Dados')
+
 ## Conclusão
