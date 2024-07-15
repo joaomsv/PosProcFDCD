@@ -100,4 +100,99 @@ No lado esquerdo, podemos ver 2 arquivos:
 - **sample_movielens_ratings.txt:** É a nossa base de dados.
 ![Base de Dados](media/baseDeDados.png 'Base de Dados')
 
+#### Criando um Spark Session
+
+Antes de tudo, precisamos criar uma sessão do Spark para que possamos começar a fazer o treinamento dos modelos para nosso sistema.
+
+```py
+from __future__ import print_function
+
+import sys
+if sys.version >= '3':
+    long = int
+
+from pyspark.sql import SparkSession
+from pyspark.ml.evaluation import RegressionEvaluator
+from pyspark.ml.recommendation import ALS
+from pyspark.sql import Row
+```
+
+Aqui estamos importando as bibliotecas necessárias.
+
+```py
+spark = SparkSession\
+        .builder\
+        .appName("ALSExample")\
+        .config("spark.mongodb.read.connection.uri", "mongodb://172.20.0.2:27017/puc.recomendacoes") \
+        .config("spark.mongodb.write.connection.uri", "mongodb://172.20.0.2:27017/puc.recomendacoes") \
+        .config('spark.jars.packages',"org.mongodb.spark:mongo-spark-connector_2.12:10.3.0")\
+        .getOrCreate()
+```
+
+Agora podemos iniciar nossa sessão do Spark. Precisamos configurar a sessão para que ela se conecte ao nosso MongoDB. Para isso, é necessário descobrir o IP que ele está utilizando.
+
+![Inspect MongoDB](media/inspectMongoDB.png 'Inspect MongoDB')
+
+Através da funcionalidade do Docker Desktop, podemos dar um `inspect` no container e identificar o IP, sendo neste caso `172.20.0.2`. Também criamos um banco `puc` e uma coleção `recomendacoes`.
+
+#### Carregando os Dados
+
+```py
+lines = spark.read.text("sample_movielens_ratings.txt").rdd
+parts = lines.map(lambda row: row.value.split("::"))
+ratingsRDD = parts.map(lambda p: Row(userId=int(p[0]), movieId=int(p[1]),
+                                     rating=float(p[2]), timestamp=long(p[3])))
+ratings = spark.createDataFrame(ratingsRDD.collect())
+```
+
+Agora vamos fazer a leitura da nossa base de dados `sample_movielens_ratings.txt`. Cada linha contém um `userID`, `movieID`, `rating` e `timestamp`, separados por `::`. Faremos a leitura e criaremos um dataframe para que seja possível manipularmos os dados.
+
+#### Treinando o Modelo
+
+Agora que temos um dataframe, podemos começar a treinar os dados.
+
+```py
+(training, test) = ratings.randomSplit([0.8, 0.2])
+
+als = ALS(maxIter=5, regParam=0.01, userCol="userId", itemCol="movieId", ratingCol="rating",
+              coldStartStrategy="drop")
+model = als.fit(training)
+```
+
+Dividimos de forma aleatória nossos dados em 2 conjuntos: 80% para treinamento e 20% para teste. Após isso, executamos o `ALS` limitando o número máximo de iterações no treinamento para 5 e usando a estratégia `drop` para cold start. Isso significa que ele irá ignorar qualquer usuário que tenha um número muito pequeno de interações para não gerar recomendações para ele, o que não seria eficaz.
+
+#### Gerando as Recomendações
+
+```py
+predictions = model.transform(test)
+evaluator = RegressionEvaluator(metricName="rmse", labelCol="rating",
+                                    predictionCol="prediction")
+rmse = evaluator.evaluate(predictions)
+print("Root-mean-square error = " + str(rmse))
+```
+
+Vamos calcular a margem de erro da nossa predição, que neste caso é `Root-mean-square error = 1.7488800236279904`.
+
+```py
+userRecs = model.recommendForAllUsers(10)
+userRecs.show(10, False)
+```
+
+Finalmente, podemos gerar nossas recomendações. Decidimos gerar 10 recomendações para cada usuário.
+
+![Recomendações](media/recomendacoes.png 'Recomendações')
+
+#### Salvando no MongoDB
+
+```py
+userRecs.select(userRecs["userId"], \
+                userRecs["recommendations"]["movieId"].alias("movieId"),\
+userRecs["recommendations"]["rating"].cast('array<double>').alias("rating")).\
+    write.format("mongodb").mode("append").save()
+```
+
+Para concluir, vamos salvar todas as recomendações geradas no MongoDB.
+
+![MongoDB](media/mongodb.png 'MongoDB')
+
 ## Conclusão
