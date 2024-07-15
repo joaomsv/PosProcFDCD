@@ -195,4 +195,77 @@ Para concluir, vamos salvar todas as recomendações geradas no MongoDB.
 
 ![MongoDB](media/mongodb.png 'MongoDB')
 
+#### Instalando Dependencias para FastAPI
+
+Agora que salvamos as recomendações no MongoDB, vamos criar uma API para que possamos consultá-las a qualquer momento. Iremos utilizar as seguintes bibliotecas:
+
+```txt
+fastapi==0.68.0
+uvicorn==0.15.0
+pymongo==3.12.0
+```
+
+Usamos FastAPI para criar uma API simples, PyMongo para acessar nosso banco no MongoDB e Uvicorn como nosso servidor ASGI. Para instalar, é só executar o comando `pip install -r requirements.txt`.
+
+#### Consultando as Recomendações
+
+Após executar nosso `main.py`, podemos ver que existem 3 APIs ao acessar `http://localhost:8000/docs`.
+
+```py
+@app.get("/rec/v1")
+def rota_padrao():
+    return {"Rota padrão": "Você acessou a rota default"}
+```
+
+O primeiro API é somente um teste para validar se está funcionando corretamente.
+
+```py
+@app.get("/rec/v2/{usuario}")
+def consulta_rec(usuario: int):
+    return {"usuario": usuario, "resultado_recs": mongo.consulta_recomendacoes(usuario, conexao)}
+```
+
+Aqui vamos consultar as recomendações de um usuário. O ID do usuário é passado no endereço como parâmetro e chama uma função `consulta_recomendacoes()` que irá retornar cada filme e sua rating.
+
+```py
+def consulta_recomendacoes(usuario, conexao):
+    recomendacoes = list(conexao.find({"userId": usuario}))
+    list_rec = []
+    for rec in recomendacoes:
+        list_rec.append((rec['movieId'],rec['rating']))
+    return {'Recomendações': list_rec}
+```
+
+![Consulta Recomendações para 1 user](media/consultRec1.png 'Consulta Recomendações para 1 user')
+
+Aqui consultamos as recomendações do usuário 3, sendo o primeiro conjunto de números o ID dos filmes e o segundo os ratings.
+
+```py
+@app.get("/rec/v3/{users}")
+def consulta_rec_mov(users: str):
+    rec = []
+    for user in users.split(','):
+        rec.append({'usuario': int(user), 'recomedacoes': mongo.consulta_rec_movies(int(user), conexao)})
+    return {'Resultado': rec}
+```
+
+O nosso último API, iremos consultar múltiplos usuários, mas retornar somente os IDs dos filmes. Isso se torna possível utilizando os usuários passados no endereço, separados por vírgula, e enviando-os individualmente para a função `consulta_rec_movies()`.
+
+```py
+def consulta_rec_movies(usuario, conexao: Collection):
+    recomendacoes = conexao.find({"userId": usuario})
+    list_rec = {}
+    for rec in recomendacoes:
+        list_rec.update({'movieID': rec['movieId']})
+    return list_rec
+```
+
+A função recebe o usuário, consulta o banco e logo retorna para a API um dicionário.
+
+![Consulta Recomendações para 3 Users](media/consultRec3.png 'Consulta Recomendações 3 Users')
+
+Aqui podemos ver uma consulta para 3 usuários.
+
 ## Conclusão
+
+Em conclusão, desenvolvemos uma solução robusta e moderna para recomendações personalizadas, utilizando o modelo ALS da MLlib do Apache Spark e o MongoDB para armazenamento de dados. A implementação da API com FastAPI oferece uma interface escalável e eficiente para acessar as recomendações. Embora a margem de erro possa ser reduzida através de melhorias na base de dados e ajustes no algoritmo, a arquitetura atual é flexível e escalável, pronta para futuras expansões e adaptações. Em resumo, nossa solução proporciona uma base sólida e adaptável para sistemas de recomendação, com potencial para crescimento e otimização contínuos.
